@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "crates/common",
-    "crates/photo",
+    "crates/proto",
     "crates/web",
 ]
 
@@ -30,17 +30,37 @@ axum = "*"
 tower = "*"
 tower-http = { version = "*", features = ["trace", "cors"] }
 
+# gRPC (Tonic stack)
+tonic = "*"
+tonic-prost = "*"
+tonic-prost-build = "*"
+tonic-reflection = "*"
+prost = "*"
+prost-build = "*"
+prost-types = "*"
+
+# tonic-rest: REST + SSE transcoding from google.api.http annotations
+tonic-rest = "*"
+tonic-rest-build = "*"
+
+# Build-script glob helper — lets proto/build.rs discover `.proto` files
+# instead of listing them one by one.
+glob = "*"
+
+# prost-validate: protoc-gen-validate-compatible message validation for prost.
+prost-validate = { version = "*", features = ["derive"] }
+prost-validate-build = "*"
+
+# HTTP + async primitives used by tonic-rest-generated handlers
+futures = "*"
+
 # Logging / tracing
 tracing = "*"
 tracing-subscriber = { version = "*", features = ["env-filter"] }
 
-# Image handling
-image = "*"
-bytes = "*"
-
 # Internal workspace crates
 common = { path = "crates/common" }
-photo = { path = "crates/photo" }
+proto = { path = "crates/proto" }
 
 [profile.release]
 lto = "thin"

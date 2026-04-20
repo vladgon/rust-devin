@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt --all
+        description: Run `cargo fmt --all` on the workspace and fail the commit if anything is unformatted.
+        entry: cargo fmt --all --
+        language: system
+        types: [rust]
+        pass_filenames: false

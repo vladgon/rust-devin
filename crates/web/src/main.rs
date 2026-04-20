@@ -1,63 +1,79 @@
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use anyhow::Result;
-use axum::{
-    extract::DefaultBodyLimit,
-    http::StatusCode,
-    response::{IntoResponse, Json},
-    routing::{get, post},
-    Router,
-};
-use bytes::Bytes;
+use axum::response::Json;
+use axum::routing::get;
+use axum::Router;
+use prost_validate::Validator;
 use serde_json::json;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tonic::{transport::Server, Request, Response, Status};
 
 use common::AppConfig;
+use proto::greeter::{
+    greeter_server::{Greeter, GreeterServer},
+    HelloReply, HelloRequest,
+};
+use proto::rest::greeter_rest_router;
+use proto::FILE_DESCRIPTOR_SET;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     common::init_tracing();
 
     let config = AppConfig::default();
-    let app = build_router();
+    let grpc_addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
 
-    let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
-    tracing::info!(%addr, "web server listening");
+    let service = Arc::new(GreeterService);
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    serve_grpc(grpc_addr, Arc::clone(&service))
+        .await
+        .expect("grpc server failed");
+
     Ok(())
 }
 
-fn build_router() -> Router {
-    Router::new()
-        .route("/", get(root))
-        .route("/health", get(health))
-        .route("/photo/info", post(photo_info))
-        .layer(DefaultBodyLimit::max(32 * 1024 * 1024))
-        .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
-}
+async fn serve_grpc(addr: SocketAddr, greeter: Arc<GreeterService>) -> Result<()> {
+    let reflection_service = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .build_v1()?;
 
-async fn root() -> &'static str {
-    "rust-devin web service"
+    tracing::info!(%addr, "grpc server listening");
+    Server::builder()
+        .accept_http1(true)
+        .add_routes(
+            Router::new()
+                .route("/health", get(health))
+                .merge(greeter_rest_router(Arc::clone(&greeter)))
+                .into(),
+        )
+        .add_service(GreeterServer::from_arc(greeter))
+        .add_service(reflection_service)
+        .serve(addr)
+        .await?;
+    Ok(())
 }
 
 async fn health() -> Json<serde_json::Value> {
     Json(json!({ "status": "ok" }))
 }
 
-/// Accept a raw image payload and return its dimensions + detected format.
-async fn photo_info(body: Bytes) -> impl IntoResponse {
-    match photo::decode(&body) {
-        Ok((_image, info)) => (StatusCode::OK, Json(json!(info))).into_response(),
-        Err(err) => {
-            tracing::warn!(?err, "failed to decode photo");
-            (
-                StatusCode::BAD_REQUEST,
-                Json(json!({ "error": err.to_string() })),
-            )
-                .into_response()
-        }
+#[derive(Debug, Default)]
+struct GreeterService;
+
+#[tonic::async_trait]
+impl Greeter for GreeterService {
+    async fn say_hello(
+        &self,
+        request: Request<HelloRequest>,
+    ) -> std::result::Result<Response<HelloReply>, Status> {
+        let request = request.into_inner();
+        request
+            .validate()
+            .map_err(|e| Status::invalid_argument(e.to_string()))?;
+        let reply = HelloReply {
+            message: format!("Hello, {}!", request.name),
+        };
+        Ok(Response::new(reply))
     }
 }
