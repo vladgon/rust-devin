@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use anyhow::Result;
 use axum::{response::Json, routing::get, Router};
@@ -11,6 +12,7 @@ use proto::greeter::{
     greeter_server::{Greeter, GreeterServer},
     HelloReply, HelloRequest,
 };
+use proto::rest::greeter_rest_router;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -20,8 +22,10 @@ async fn main() -> Result<()> {
     let http_addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
     let grpc_addr: SocketAddr = format!("{}:{}", config.host, config.port + 1).parse()?;
 
-    let http = tokio::spawn(serve_http(http_addr));
-    let grpc = tokio::spawn(serve_grpc(grpc_addr));
+    let service = Arc::new(GreeterService);
+
+    let http = tokio::spawn(serve_http(http_addr, Arc::clone(&service)));
+    let grpc = tokio::spawn(serve_grpc(grpc_addr, Arc::clone(&service)));
 
     tokio::try_join!(flatten(http), flatten(grpc))?;
     Ok(())
@@ -34,10 +38,11 @@ async fn flatten<T>(handle: tokio::task::JoinHandle<Result<T>>) -> Result<T> {
     }
 }
 
-async fn serve_http(addr: SocketAddr) -> Result<()> {
+async fn serve_http(addr: SocketAddr, greeter: Arc<GreeterService>) -> Result<()> {
     let app = Router::new()
         .route("/", get(root))
         .route("/health", get(health))
+        .merge(greeter_rest_router(greeter))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive());
 
@@ -47,10 +52,10 @@ async fn serve_http(addr: SocketAddr) -> Result<()> {
     Ok(())
 }
 
-async fn serve_grpc(addr: SocketAddr) -> Result<()> {
+async fn serve_grpc(addr: SocketAddr, greeter: Arc<GreeterService>) -> Result<()> {
     tracing::info!(%addr, "grpc server listening");
     Server::builder()
-        .add_service(GreeterServer::new(GreeterService))
+        .add_service(GreeterServer::from_arc(greeter))
         .serve(addr)
         .await?;
     Ok(())

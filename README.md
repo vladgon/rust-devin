@@ -9,8 +9,8 @@ crates reference them with `dep = { workspace = true }`.
 | Crate | Kind | Purpose |
 | --- | --- | --- |
 | [`crates/common`](./crates/common) | library | Shared types, error enum, config, tracing setup. |
-| [`crates/proto`](./crates/proto) | library | Protobuf definitions + generated tonic-grpc bindings. Includes `googleapis/googleapis` as a git submodule under `crates/proto/third_party/googleapis`. |
-| [`crates/web`](./crates/web) | binary | Axum HTTP server + tonic-grpc Greeter server. |
+| [`crates/proto`](./crates/proto) | library | Protobuf definitions + generated tonic-grpc bindings **and** tonic-rest REST handlers (from `google.api.http` annotations). Includes `googleapis/googleapis` as a git submodule under `crates/proto/third_party/googleapis`. |
+| [`crates/web`](./crates/web) | binary | Axum HTTP server (with REST-transcoded `Greeter.SayHello`) + tonic-grpc Greeter server on port `+1`. |
 
 ## Prerequisites
 

@@ -2,9 +2,16 @@ syntax = "proto3";
 
 package greeter;
 
-// A minimal example service used to exercise the tonic-grpc toolchain.
+import "google/api/annotations.proto";
+
+// A minimal example service exercising tonic-grpc and tonic-rest transcoding.
 service Greeter {
-  rpc SayHello (HelloRequest) returns (HelloReply);
+  rpc SayHello (HelloRequest) returns (HelloReply) {
+    option (google.api.http) = {
+      post: "/v1/greeter/sayHello"
+      body: "*"
+    };
+  }
 }
 
 message HelloRequest {

@@ -35,7 +35,15 @@ tonic = "*"
 tonic-prost = "*"
 tonic-prost-build = "*"
 prost = "*"
+prost-build = "*"
 prost-types = "*"
+
+# tonic-rest: REST + SSE transcoding from google.api.http annotations
+tonic-rest = "*"
+tonic-rest-build = "*"
+
+# HTTP + async primitives used by tonic-rest-generated handlers
+futures = "*"
 
 # Logging / tracing
 tracing = "*"

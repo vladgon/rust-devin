@@ -1,8 +1,9 @@
-//! Generated Rust bindings for the workspace's gRPC services.
+//! Generated Rust bindings for the workspace's gRPC + REST services.
 //!
 //! Protobuf definitions live under `proto/` (workspace-owned) and
 //! `third_party/googleapis/` (git submodule). `build.rs` compiles them via
-//! `tonic-prost-build`.
+//! `tonic-prost-build` (gRPC) and `tonic-rest-build` (REST transcoding from
+//! `google.api.http` annotations).
 
 /// Local `Greeter` example service.
 pub mod greeter {
@@ -30,4 +31,12 @@ pub mod google {
             }
         }
     }
+}
+
+/// REST routers generated from `google.api.http` annotations.
+///
+/// Contains per-service `*_rest_router(Arc<S>) -> axum::Router` functions for
+/// every service in our proto tree that has HTTP bindings.
+pub mod rest {
+    include!(concat!(env!("OUT_DIR"), "/rest_routes.rs"));
 }
