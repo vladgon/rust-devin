@@ -35,6 +35,7 @@ tonic = "*"
 tonic-prost = "*"
 tonic-prost-build = "*"
 prost = "*"
+prost-types = "*"
 
 # Logging / tracing
 tracing = "*"

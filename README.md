@@ -9,15 +9,28 @@ crates reference them with `dep = { workspace = true }`.
 | Crate | Kind | Purpose |
 | --- | --- | --- |
 | [`crates/common`](./crates/common) | library | Shared types, error enum, config, tracing setup. |
-| [`crates/proto`](./crates/proto) | library | Protobuf definitions + generated tonic-grpc bindings. |
+| [`crates/proto`](./crates/proto) | library | Protobuf definitions + generated tonic-grpc bindings. Includes `googleapis/googleapis` as a git submodule under `crates/proto/third_party/googleapis`. |
 | [`crates/web`](./crates/web) | binary | Axum HTTP server + tonic-grpc Greeter server. |
 
 ## Prerequisites
 
 - Rust (stable, edition 2021+)
-- `protoc` (protobuf compiler) — required at build time by `tonic-build`.
+- `protoc` (protobuf compiler) — required at build time by `tonic-prost-build`.
   - Ubuntu/Debian: `sudo apt-get install -y protobuf-compiler`
   - macOS: `brew install protobuf`
+- Submodules populated:
+
+  ```bash
+  git clone --recurse-submodules https://github.com/vladgon/rust-devin
+  # or, in an existing clone:
+  git submodule update --init --recursive
+  ```
+
+  The `proto` crate compiles a subset of the `googleapis/googleapis` protos;
+  the submodule lives at `crates/proto/third_party/googleapis` and is currently
+  wired up to generate bindings for the Street View Publish API (the "photos"
+  gRPC API in googleapis — Google Photos itself is REST-only and has no
+  official proto definitions).
 
 ## Build & test
 
