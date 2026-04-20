@@ -9,8 +9,15 @@ crates reference them with `dep = { workspace = true }`.
 | Crate | Kind | Purpose |
 | --- | --- | --- |
 | [`crates/common`](./crates/common) | library | Shared types, error enum, config, tracing setup. |
-| [`crates/photo`](./crates/photo) | library | Photo decoding, metadata, and thumbnailing (built on `image`). |
-| [`crates/web`](./crates/web) | binary | Axum HTTP server exposing `/health` and `/photo/info`. |
+| [`crates/proto`](./crates/proto) | library | Protobuf definitions + generated tonic-grpc bindings. |
+| [`crates/web`](./crates/web) | binary | Axum HTTP server + tonic-grpc Greeter server. |
+
+## Prerequisites
+
+- Rust (stable, edition 2021+)
+- `protoc` (protobuf compiler) — required at build time by `tonic-build`.
+  - Ubuntu/Debian: `sudo apt-get install -y protobuf-compiler`
+  - macOS: `brew install protobuf`
 
 ## Build & test
 
@@ -19,11 +26,17 @@ cargo build
 cargo test
 ```
 
-## Run the web server
+## Run the web binary
+
+The `web` binary exposes HTTP on `AppConfig::port` (default `3000`) and gRPC
+on `port + 1` (default `3001`):
 
 ```bash
 cargo run -p web
-# then
+# HTTP
 curl http://localhost:3000/health
-curl --data-binary @some.jpg http://localhost:3000/photo/info
+# gRPC (using grpcurl, requires server reflection to be turned on for this to
+# work without proto files; otherwise use a generated client)
+grpcurl -plaintext -import-path crates/proto/proto -proto greeter.proto \
+  -d '{"name":"world"}' localhost:3001 greeter.Greeter/SayHello
 ```

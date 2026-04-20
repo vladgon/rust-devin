@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "crates/common",
-    "crates/photo",
+    "crates/proto",
     "crates/web",
 ]
 
@@ -30,17 +30,19 @@ axum = "*"
 tower = "*"
 tower-http = { version = "*", features = ["trace", "cors"] }
 
+# gRPC (Tonic stack)
+tonic = "*"
+tonic-prost = "*"
+tonic-prost-build = "*"
+prost = "*"
+
 # Logging / tracing
 tracing = "*"
 tracing-subscriber = { version = "*", features = ["env-filter"] }
 
-# Image handling
-image = "*"
-bytes = "*"
-
 # Internal workspace crates
 common = { path = "crates/common" }
-photo = { path = "crates/photo" }
+proto = { path = "crates/proto" }
 
 [profile.release]
 lto = "thin"

@@ -1,42 +1,59 @@
 use std::net::SocketAddr;
 
 use anyhow::Result;
-use axum::{
-    extract::DefaultBodyLimit,
-    http::StatusCode,
-    response::{IntoResponse, Json},
-    routing::{get, post},
-    Router,
-};
-use bytes::Bytes;
+use axum::{response::Json, routing::get, Router};
 use serde_json::json;
+use tonic::{transport::Server, Request, Response, Status};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 use common::AppConfig;
+use proto::greeter::{
+    greeter_server::{Greeter, GreeterServer},
+    HelloReply, HelloRequest,
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     common::init_tracing();
 
     let config = AppConfig::default();
-    let app = build_router();
+    let http_addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
+    let grpc_addr: SocketAddr = format!("{}:{}", config.host, config.port + 1).parse()?;
 
-    let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
-    tracing::info!(%addr, "web server listening");
+    let http = tokio::spawn(serve_http(http_addr));
+    let grpc = tokio::spawn(serve_grpc(grpc_addr));
 
+    tokio::try_join!(flatten(http), flatten(grpc))?;
+    Ok(())
+}
+
+async fn flatten<T>(handle: tokio::task::JoinHandle<Result<T>>) -> Result<T> {
+    match handle.await {
+        Ok(res) => res,
+        Err(join_err) => Err(anyhow::anyhow!(join_err)),
+    }
+}
+
+async fn serve_http(addr: SocketAddr) -> Result<()> {
+    let app = Router::new()
+        .route("/", get(root))
+        .route("/health", get(health))
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive());
+
+    tracing::info!(%addr, "http server listening");
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
     Ok(())
 }
 
-fn build_router() -> Router {
-    Router::new()
-        .route("/", get(root))
-        .route("/health", get(health))
-        .route("/photo/info", post(photo_info))
-        .layer(DefaultBodyLimit::max(32 * 1024 * 1024))
-        .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
+async fn serve_grpc(addr: SocketAddr) -> Result<()> {
+    tracing::info!(%addr, "grpc server listening");
+    Server::builder()
+        .add_service(GreeterServer::new(GreeterService))
+        .serve(addr)
+        .await?;
+    Ok(())
 }
 
 async fn root() -> &'static str {
@@ -47,17 +64,19 @@ async fn health() -> Json<serde_json::Value> {
     Json(json!({ "status": "ok" }))
 }
 
-/// Accept a raw image payload and return its dimensions + detected format.
-async fn photo_info(body: Bytes) -> impl IntoResponse {
-    match photo::decode(&body) {
-        Ok((_image, info)) => (StatusCode::OK, Json(json!(info))).into_response(),
-        Err(err) => {
-            tracing::warn!(?err, "failed to decode photo");
-            (
-                StatusCode::BAD_REQUEST,
-                Json(json!({ "error": err.to_string() })),
-            )
-                .into_response()
-        }
+#[derive(Debug, Default)]
+struct GreeterService;
+
+#[tonic::async_trait]
+impl Greeter for GreeterService {
+    async fn say_hello(
+        &self,
+        request: Request<HelloRequest>,
+    ) -> std::result::Result<Response<HelloReply>, Status> {
+        let name = request.into_inner().name;
+        let reply = HelloReply {
+            message: format!("Hello, {}!", name),
+        };
+        Ok(Response::new(reply))
     }
 }
