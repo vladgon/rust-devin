@@ -12,9 +12,6 @@ tonic-prost = { workspace = true }
 prost = { workspace = true }
 prost-types = { workspace = true }
 
-# Prebuilt `google.api.*` types (googleapis/googleapis generated via tonic).
-google-api-proto = { workspace = true }
-
 # Types/extractors referenced by tonic-rest-generated REST handlers
 tonic-rest = { workspace = true }
 axum = { workspace = true }

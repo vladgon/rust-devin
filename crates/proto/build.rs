@@ -3,15 +3,17 @@ use std::path::PathBuf;
 
 use tonic_rest_build::{dump_file_descriptor_set, generate, RestCodegenConfig};
 
-/// Workspace-owned proto files compiled for gRPC (messages + service traits).
-///
-/// Google API types are provided by the prebuilt `google-api-proto` crate,
-/// so we only compile our own protos here. The `googleapis` submodule is
-/// still referenced through [`PROTO_INCLUDES`] to resolve
-/// `import "google/api/annotations.proto"` during protoc compilation.
-const GRPC_PROTO_FILES: &[&str] = &["proto/greeter.proto"];
+/// All proto files compiled for gRPC (messages + service traits).
+const GRPC_PROTO_FILES: &[&str] = &[
+    "proto/greeter.proto",
+    // Street View Publish API — the "photos" gRPC API in googleapis.
+    "third_party/googleapis/google/streetview/publish/v1/streetview_publish.proto",
+];
 
-/// Subset compiled for REST transcoding via `tonic-rest`.
+/// Subset compiled for REST transcoding via `tonic-rest`. Excludes APIs whose
+/// `google.api.http` bindings use features `tonic-rest` 0.1 doesn't yet
+/// support (e.g. partial-body selectors like `body: "photo"` in Street View
+/// Publish).
 const REST_PROTO_FILES: &[&str] = &["proto/greeter.proto"];
 
 const PROTO_INCLUDES: &[&str] = &["proto", "third_party/googleapis"];
