@@ -33,13 +33,6 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn flatten<T>(handle: tokio::task::JoinHandle<Result<T>>) -> Result<T> {
-    match handle.await {
-        Ok(res) => res,
-        Err(join_err) => Err(anyhow::anyhow!(join_err)),
-    }
-}
-
 async fn serve_grpc(addr: SocketAddr, greeter: Arc<GreeterService>) -> Result<()> {
     let reflection_service = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
@@ -59,10 +52,6 @@ async fn serve_grpc(addr: SocketAddr, greeter: Arc<GreeterService>) -> Result<()
         .serve(addr)
         .await?;
     Ok(())
-}
-
-async fn root() -> &'static str {
-    "rust-devin web service"
 }
 
 async fn health() -> Json<serde_json::Value> {
