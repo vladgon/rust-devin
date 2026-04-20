@@ -9,7 +9,7 @@ crates reference them with `dep = { workspace = true }`.
 | Crate | Kind | Purpose |
 | --- | --- | --- |
 | [`crates/common`](./crates/common) | library | Shared types, error enum, config, tracing setup. |
-| [`crates/proto`](./crates/proto) | library | Protobuf definitions + generated tonic-grpc bindings **and** tonic-rest REST handlers (from `google.api.http` annotations). Includes `googleapis/googleapis` as a git submodule under `crates/proto/third_party/googleapis`. |
+| [`crates/proto`](./crates/proto) | library | Protobuf definitions + generated tonic-grpc bindings **and** tonic-rest REST handlers (from `google.api.http` annotations). `build.rs` globs every `proto/**/*.proto` in the crate and keeps `googleapis/googleapis` (git submodule at `crates/proto/third_party/googleapis`) on the protoc include path so `google/api/annotations.proto` resolves. |
 | [`crates/web`](./crates/web) | binary | Axum HTTP server (with REST-transcoded `Greeter.SayHello`) + tonic-grpc Greeter server on port `+1`. |
 
 ## Prerequisites
@@ -26,11 +26,10 @@ crates reference them with `dep = { workspace = true }`.
   git submodule update --init --recursive
   ```
 
-  The `proto` crate compiles a subset of the `googleapis/googleapis` protos;
-  the submodule lives at `crates/proto/third_party/googleapis` and is currently
-  wired up to generate bindings for the Street View Publish API (the "photos"
-  gRPC API in googleapis — Google Photos itself is REST-only and has no
-  official proto definitions).
+  `proto/build.rs` only compiles workspace-owned protos under `proto/**/*.proto`,
+  but still needs the googleapis submodule on disk so `protoc` can resolve
+  `import "google/api/annotations.proto"`. No googleapis protos are generated
+  into the crate.
 
 ## Build & test
 
