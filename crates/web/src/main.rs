@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::response::Json;
+use axum::routing::get;
+use axum::Router;
 use prost_validate::Validator;
 use serde_json::json;
 use tonic::{transport::Server, Request, Response, Status};
@@ -45,7 +47,13 @@ async fn serve_grpc(addr: SocketAddr, greeter: Arc<GreeterService>) -> Result<()
 
     tracing::info!(%addr, "grpc server listening");
     Server::builder()
-        .add_routes(greeter_rest_router(Arc::clone(&greeter)).into())
+        .accept_http1(true)
+        .add_routes(
+            Router::new()
+                .route("/health", get(health))
+                .merge(greeter_rest_router(Arc::clone(&greeter)))
+                .into(),
+        )
         .add_service(GreeterServer::from_arc(greeter))
         .add_service(reflection_service)
         .serve(addr)
