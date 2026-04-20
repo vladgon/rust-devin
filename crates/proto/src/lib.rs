@@ -6,7 +6,6 @@
 //! `third_party/googleapis/` is only used as a protoc include path so
 //! `import "google/api/annotations.proto"` resolves.
 
-
 pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("file_descriptor_set");
 
 /// Local `Greeter` example service.

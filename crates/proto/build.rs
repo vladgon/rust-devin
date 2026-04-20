@@ -73,7 +73,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Phase 2b: prost-validate — add `#[derive(prost_validate::Validator)]`
     // + per-field rule attributes for every message carrying
     // `(validate.rules)` annotations.
-    prost_validate_build::Builder::new().configure(&mut prost_config, &proto_refs, PROTO_INCLUDES)?;
+    prost_validate_build::Builder::new().configure(
+        &mut prost_config,
+        &proto_refs,
+        PROTO_INCLUDES,
+    )?;
 
     tonic_prost_build::configure()
         .build_client(true)

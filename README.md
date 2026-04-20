@@ -38,6 +38,18 @@ cargo build
 cargo test
 ```
 
+## Pre-commit hook
+
+The repo ships a [`.pre-commit-config.yaml`](./.pre-commit-config.yaml) with a
+`cargo fmt --all` hook that runs before every commit. To wire it up:
+
+```bash
+pip install pre-commit  # or `brew install pre-commit` / `pipx install pre-commit`
+pre-commit install
+```
+
+`pre-commit install` is idempotent; run it once per clone.
+
 ## Run the web binary
 
 The `web` binary exposes HTTP on `AppConfig::port` (default `3000`) and gRPC
