@@ -46,6 +46,10 @@ tonic-rest-build = "*"
 # instead of listing them one by one.
 glob = "*"
 
+# prost-validate: protoc-gen-validate-compatible message validation for prost.
+prost-validate = { version = "*", features = ["derive"] }
+prost-validate-build = "*"
+
 # HTTP + async primitives used by tonic-rest-generated handlers
 futures = "*"
 

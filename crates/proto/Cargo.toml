@@ -19,8 +19,12 @@ futures = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+# `#[derive(Validator)]` for messages with `(validate.rules)` annotations
+prost-validate = { workspace = true }
+
 [build-dependencies]
 tonic-prost-build = { workspace = true }
 tonic-rest-build = { workspace = true }
 prost-build = { workspace = true }
+prost-validate-build = { workspace = true }
 glob = { workspace = true }

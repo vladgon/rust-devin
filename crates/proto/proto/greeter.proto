@@ -3,6 +3,7 @@ syntax = "proto3";
 package greeter;
 
 import "google/api/annotations.proto";
+import "validate/validate.proto";
 
 // A minimal example service exercising tonic-grpc and tonic-rest transcoding.
 service Greeter {
@@ -15,7 +16,9 @@ service Greeter {
 }
 
 message HelloRequest {
-  string name = 1;
+  // Caller name — mandatory (protoc-gen-validate enforces non-empty strings
+  // via `min_len: 1`, there is no separate `required` option for scalars).
+  string name = 1 [(validate.rules).string.min_len = 1];
 }
 
 message HelloReply {

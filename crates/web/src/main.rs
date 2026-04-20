@@ -4,6 +4,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use axum::{response::Json, routing::get, Router};
 use serde_json::json;
+use prost_validate::Validator;
 use tonic::{transport::Server, Request, Response, Status};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
@@ -78,9 +79,12 @@ impl Greeter for GreeterService {
         &self,
         request: Request<HelloRequest>,
     ) -> std::result::Result<Response<HelloReply>, Status> {
-        let name = request.into_inner().name;
+        let request = request.into_inner();
+        request
+            .validate()
+            .map_err(|e| Status::invalid_argument(e.to_string()))?;
         let reply = HelloReply {
-            message: format!("Hello, {}!", name),
+            message: format!("Hello, {}!", request.name),
         };
         Ok(Response::new(reply))
     }

@@ -18,3 +18,29 @@ pub mod greeter {
 pub mod rest {
     include!(concat!(env!("OUT_DIR"), "/rest_routes.rs"));
 }
+
+#[cfg(test)]
+mod tests {
+    use super::greeter::HelloRequest;
+    use prost_validate::Validator;
+
+    #[test]
+    fn empty_name_fails_validation() {
+        let req = HelloRequest { name: String::new() };
+        let err = req
+            .validate()
+            .expect_err("empty name should violate min_len: 1");
+        assert!(
+            err.to_string().to_lowercase().contains("length"),
+            "expected length-related error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn non_empty_name_passes_validation() {
+        let req = HelloRequest {
+            name: "world".into(),
+        };
+        req.validate().expect("non-empty name should pass");
+    }
+}

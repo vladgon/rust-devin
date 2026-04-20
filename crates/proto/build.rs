@@ -9,10 +9,22 @@ use tonic_rest_build::{
 /// this path (recursively) is compiled for gRPC **and** REST transcoding.
 const PROTO_DIR: &str = "proto";
 
-/// Include paths passed to `protoc`. `third_party/googleapis` is kept on the
-/// include path so `import "google/api/annotations.proto"` resolves during
-/// compilation; we do not compile any googleapis protos into Rust ourselves.
-const PROTO_INCLUDES: &[&str] = &["proto", "third_party/googleapis"];
+/// Include paths passed to `protoc`.
+///
+/// - `third_party/googleapis` resolves `import "google/api/annotations.proto"`
+///   for `google.api.http` bindings.
+/// - `third_party/protoc-gen-validate` resolves
+///   `import "validate/validate.proto"` for `prost-validate` /
+///   protoc-gen-validate field rules (vendored upstream at
+///   `third_party/protoc-gen-validate/validate/validate.proto`).
+///
+/// We don't compile any of these vendored protos into Rust ourselves; they're
+/// only used by `protoc` to resolve imports and by build-time tooling.
+const PROTO_INCLUDES: &[&str] = &[
+    "proto",
+    "third_party/googleapis",
+    "third_party/protoc-gen-validate",
+];
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir: PathBuf = env::var_os("OUT_DIR").expect("OUT_DIR not set").into();
@@ -58,6 +70,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &[],
     );
 
+    // Phase 2b: prost-validate — add `#[derive(prost_validate::Validator)]`
+    // + per-field rule attributes for every message carrying
+    // `(validate.rules)` annotations.
+    prost_validate_build::Builder::new().configure(&mut prost_config, &proto_refs, PROTO_INCLUDES)?;
+
     tonic_prost_build::configure()
         .build_client(true)
         .build_server(true)
@@ -70,5 +87,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("cargo:rerun-if-changed={PROTO_DIR}");
     println!("cargo:rerun-if-changed=third_party/googleapis");
+    println!("cargo:rerun-if-changed=third_party/protoc-gen-validate");
     Ok(())
 }
