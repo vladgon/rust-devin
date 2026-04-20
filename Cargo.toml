@@ -42,6 +42,10 @@ prost-types = "*"
 tonic-rest = "*"
 tonic-rest-build = "*"
 
+# Build-script glob helper — lets proto/build.rs discover `.proto` files
+# instead of listing them one by one.
+glob = "*"
+
 # HTTP + async primitives used by tonic-rest-generated handlers
 futures = "*"
 
