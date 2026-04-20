@@ -1,6 +1,48 @@
-[package]
-name = "rust-devin"
+[workspace]
+resolver = "2"
+members = [
+    "crates/common",
+    "crates/photo",
+    "crates/web",
+]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
+authors = ["vladgon <vladgon@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/vladgon/rust-devin"
 
-[dependencies]
+[workspace.dependencies]
+# Error handling
+anyhow = "*"
+thiserror = "*"
+
+# Serialization
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+
+# Async runtime
+tokio = { version = "*", features = ["full"] }
+
+# Web (Axum stack)
+axum = "*"
+tower = "*"
+tower-http = { version = "*", features = ["trace", "cors"] }
+
+# Logging / tracing
+tracing = "*"
+tracing-subscriber = { version = "*", features = ["env-filter"] }
+
+# Image handling
+image = "*"
+bytes = "*"
+
+# Internal workspace crates
+common = { path = "crates/common" }
+photo = { path = "crates/photo" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
