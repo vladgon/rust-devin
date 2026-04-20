@@ -1,37 +1,24 @@
 //! Generated Rust bindings for the workspace's gRPC + REST services.
 //!
-//! Protobuf definitions live under `proto/` (workspace-owned) and
-//! `third_party/googleapis/` (git submodule). `build.rs` compiles them via
-//! `tonic-prost-build` (gRPC) and `tonic-rest-build` (REST transcoding from
-//! `google.api.http` annotations).
+//! - Our own protos live under `proto/` and are compiled at build time by
+//!   `tonic-prost-build` (gRPC) and `tonic-rest-build` (REST transcoding from
+//!   `google.api.http` annotations).
+//! - Google API types (`google.api.*`, etc.) are sourced from the prebuilt
+//!   [`google-api-proto`] crate and re-exported under [`google`] rather than
+//!   compiled locally.
+//!
+//! The `googleapis/googleapis` submodule under `third_party/googleapis/` is
+//! kept only so `build.rs` can resolve `import "google/api/annotations.proto"`
+//! during proto compilation.
 
 /// Local `Greeter` example service.
 pub mod greeter {
     tonic::include_proto!("greeter");
 }
 
-/// Google API protobufs re-exported by package path.
-pub mod google {
-    pub mod api {
-        tonic::include_proto!("google.api");
-    }
-    pub mod longrunning {
-        tonic::include_proto!("google.longrunning");
-    }
-    pub mod rpc {
-        tonic::include_proto!("google.rpc");
-    }
-    pub mod r#type {
-        tonic::include_proto!("google.r#type");
-    }
-    pub mod streetview {
-        pub mod publish {
-            pub mod v1 {
-                tonic::include_proto!("google.streetview.publish.v1");
-            }
-        }
-    }
-}
+/// Google API protobufs, re-exported from the prebuilt
+/// [`google-api-proto`](https://crates.io/crates/google-api-proto) crate.
+pub use google_api_proto::google;
 
 /// REST routers generated from `google.api.http` annotations.
 ///

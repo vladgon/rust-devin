@@ -42,6 +42,10 @@ prost-types = "*"
 tonic-rest = "*"
 tonic-rest-build = "*"
 
+# Prebuilt Google API proto bindings (googleapis/googleapis generated via tonic).
+# Avoids compiling the Google APIs ourselves from the submodule.
+google-api-proto = { version = "*", features = ["google-api"] }
+
 # HTTP + async primitives used by tonic-rest-generated handlers
 futures = "*"
 
