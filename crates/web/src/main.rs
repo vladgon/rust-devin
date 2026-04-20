@@ -2,11 +2,10 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use anyhow::Result;
-use axum::{response::Json, routing::get, Router};
-use serde_json::json;
+use axum::response::Json;
 use prost_validate::Validator;
+use serde_json::json;
 use tonic::{transport::Server, Request, Response, Status};
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 use common::AppConfig;
 use proto::greeter::{
@@ -14,21 +13,21 @@ use proto::greeter::{
     HelloReply, HelloRequest,
 };
 use proto::rest::greeter_rest_router;
+use proto::FILE_DESCRIPTOR_SET;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     common::init_tracing();
 
     let config = AppConfig::default();
-    let http_addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
-    let grpc_addr: SocketAddr = format!("{}:{}", config.host, config.port + 1).parse()?;
+    let grpc_addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
 
     let service = Arc::new(GreeterService);
 
-    let http = tokio::spawn(serve_http(http_addr, Arc::clone(&service)));
-    let grpc = tokio::spawn(serve_grpc(grpc_addr, Arc::clone(&service)));
+    serve_grpc(grpc_addr, Arc::clone(&service))
+        .await
+        .expect("grpc server failed");
 
-    tokio::try_join!(flatten(http), flatten(grpc))?;
     Ok(())
 }
 
@@ -39,24 +38,16 @@ async fn flatten<T>(handle: tokio::task::JoinHandle<Result<T>>) -> Result<T> {
     }
 }
 
-async fn serve_http(addr: SocketAddr, greeter: Arc<GreeterService>) -> Result<()> {
-    let app = Router::new()
-        .route("/", get(root))
-        .route("/health", get(health))
-        .merge(greeter_rest_router(greeter))
-        .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive());
-
-    tracing::info!(%addr, "http server listening");
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
-    Ok(())
-}
-
 async fn serve_grpc(addr: SocketAddr, greeter: Arc<GreeterService>) -> Result<()> {
+    let reflection_service = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .build_v1()?;
+
     tracing::info!(%addr, "grpc server listening");
     Server::builder()
+        .add_routes(greeter_rest_router(Arc::clone(&greeter)).into())
         .add_service(GreeterServer::from_arc(greeter))
+        .add_service(reflection_service)
         .serve(addr)
         .await?;
     Ok(())

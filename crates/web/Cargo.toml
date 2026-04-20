@@ -24,3 +24,4 @@ tonic = { workspace = true }
 prost-validate = { workspace = true }
 common = { workspace = true }
 proto = { workspace = true }
+tonic-reflection = { workspace = true }
